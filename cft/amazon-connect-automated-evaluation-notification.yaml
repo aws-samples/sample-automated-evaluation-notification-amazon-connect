@@ -14,10 +14,11 @@ Parameters:
   ConnectEvaluationBucket:
     Type: String
     Description: S3 bucket name where Connect stores evaluations (found in Connect console > Data storage > Contact evaluations - just the bucket name, not the full path)
-    Default: amazon-connect-xxxxxxxxxx
+    Default: myinstancebucket
   ConnectEvaluationLocation:
     Type: String
     Description: Full S3 path where Connect stores evaluations (found in Connect console > Data storage > Contact evaluations - the complete path after the bucket name)
+    Default: connect/myinstancebucket/ContactEvaluations/
   SESEmailAddresss:
     Type: String
     Description: Sender Email Address from SES
