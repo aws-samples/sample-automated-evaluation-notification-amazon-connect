@@ -1,0 +1,243 @@
+Transform: AWS::Serverless-2016-10-31
+Description: amazon-connect-automated-evaluation-notification
+Parameters:
+  AssetsBucketName:
+    Type: String
+    Description: AssetsBucketName
+  LambdaSourceKey:
+    Type: String
+    Description: LambdaSourceKey
+    Default: index.zip
+  InstanceArn:
+    Type: String
+    Description: instance arn
+  ConnectEvaluationBucket:
+    Type: String
+    Description: S3 bucket name where Connect stores evaluations (found in Connect console > Data storage > Contact evaluations - just the bucket name, not the full path)
+    Default: amazon-connect-xxxxxxxxxx
+  ConnectEvaluationLocation:
+    Type: String
+    Description: Full S3 path where Connect stores evaluations (found in Connect console > Data storage > Contact evaluations - the complete path after the bucket name)
+  SESEmailAddresss:
+    Type: String
+    Description: Sender Email Address from SES
+  EvaluationFlagToQuestionText:
+    Type: String
+    Description: Evaluation Question Text to Identify Flag to Role
+    Default: Flag to Roles?
+  EvaluationFlagToAgentQuestionText:
+    Type: String
+    Description: Evaluation Question Text to Identify Flag to Agent
+    Default: Flag to the Agent?
+  UsehierarchyForNotification:
+    Type: String
+    Description: Use Hierarchy with Tag Roles for Notification or Only Roles?
+    AllowedValues:
+      - 'yes'
+      - 'no'
+    Default: 'yes'
+  EmailFieldSource:
+    Type: String
+    Description: Which field to use for email addresses when sending notifications?
+    AllowedValues:
+      - 'Username'
+      - 'Email'
+      - 'SecondaryEmail'
+    Default: 'Email'
+
+Resources:
+  #######################
+  # Evaluation Form Creation
+  #######################
+  CreateEvaluationFormLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: createEvaluationForm.handler
+      Role: !GetAtt CreateEvaluationFormLambdaRole.Arn
+      MemorySize: 256
+      Timeout: 60
+      CodeUri:
+        Bucket: !Ref AssetsBucketName
+        Key: !Ref LambdaSourceKey
+
+  CreateEvaluationForm:
+    Type: Custom::CreateEvaluationForm
+    Properties:
+      ServiceToken: !GetAtt CreateEvaluationFormLambda.Arn
+      InstanceId: !Select [1, !Split ['/', !Select [5, !Split [':', !Ref InstanceArn]]]]
+      QuestionText: !Ref EvaluationFlagToQuestionText
+
+  CreateEvaluationFormLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ConnectEvaluationForm
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - connect:CreateEvaluationForm
+                Resource: 
+                  - !Ref InstanceArn
+                  - !Sub "${InstanceArn}/evaluation-form/*"
+
+  #######################
+  # CFT Solution Setup Trigger
+  #######################
+  CFTTriggerLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: s3NotificationAttachLambda.handler
+      Role: !GetAtt CFTTriggerLambdaRole.Arn
+      MemorySize: 256
+      Timeout: 180
+      Environment:
+        Variables:
+          ConnectEvaluationBucket: !Ref ConnectEvaluationBucket
+          ConnectEvaluationLocation: !Ref ConnectEvaluationLocation
+          S3EventLambda: !GetAtt S3EventLambda.Arn
+      CodeUri:
+        Bucket: !Ref AssetsBucketName
+        Key: !Ref LambdaSourceKey
+
+  CFTTriggerLambdaTrigger:
+    Type: Custom::CFTTriggerLambdaTrigger
+    Properties:
+      ServiceToken: !GetAtt CFTTriggerLambda.Arn
+
+  CFTTriggerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: s3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:PutBucketNotification
+                Resource:
+                  - !Sub arn:aws:s3:::${ConnectEvaluationBucket}
+                  - !Sub arn:aws:s3:::${ConnectEvaluationBucket}/*
+
+  #######################
+  # Lambda Permission
+  #######################
+  InvokeTriggerHandler:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt S3EventLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub arn:aws:s3:::${ConnectEvaluationBucket}
+
+  #######################
+  # Lambda S3 Event Processor Lambda 
+  #######################
+  S3EventLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt S3EventLambdaRole.Arn
+      MemorySize: 256
+      Timeout: 180
+      CodeUri:
+        Bucket: !Ref AssetsBucketName
+        Key: !Ref LambdaSourceKey
+      Environment:
+        Variables:
+          SENDER_EMAIL: !Ref SESEmailAddresss
+          EvaluationFlagToQuestionText: !Ref EvaluationFlagToQuestionText
+          EvaluationFlagToAgentQuestionText: !Ref EvaluationFlagToAgentQuestionText
+          UsehierarchyForNotification: !Ref UsehierarchyForNotification
+          EmailFieldSource: !Ref EmailFieldSource
+
+  #######################
+  # Lambda S3 Event Processor Lambda Role
+  #######################
+  S3EventLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: s3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetObject
+                Resource:
+                  - !Sub arn:aws:s3:::${ConnectEvaluationBucket}
+                  - !Sub arn:aws:s3:::${ConnectEvaluationBucket}/*
+        - PolicyName: connect
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - connect:DescribeInstance
+                  - connect:DescribeUser
+                  - connect:ListUserProficiencies
+                  - connect:SearchUsers
+                  - ds:DescribeDirectories
+                Resource:
+                  - !Sub ${InstanceArn}
+                  - !Sub ${InstanceArn}/*
+        - PolicyName: ses
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                Resource: '*'
+        - PolicyName: ds
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ds:DescribeDirectories
+                Resource: '*'
