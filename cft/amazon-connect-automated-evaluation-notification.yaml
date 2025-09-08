@@ -4,6 +4,7 @@ Parameters:
   AssetsBucketName:
     Type: String
     Description: AssetsBucketName
+    Default: myassetsbucket
   LambdaSourceKey:
     Type: String
     Description: LambdaSourceKey
@@ -14,11 +15,11 @@ Parameters:
   ConnectEvaluationBucket:
     Type: String
     Description: S3 bucket name where Connect stores evaluations (found in Connect console > Data storage > Contact evaluations - just the bucket name, not the full path)
-    Default: myinstancebucket
+    Default: myevaluationbucket
   ConnectEvaluationLocation:
     Type: String
     Description: Full S3 path where Connect stores evaluations (found in Connect console > Data storage > Contact evaluations - the complete path after the bucket name)
-    Default: connect/myinstancebucket/ContactEvaluations/
+    Default: connect/myevaluationbucket/ContactEvaluations/
   SESEmailAddresss:
     Type: String
     Description: Sender Email Address from SES
