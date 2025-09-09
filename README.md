@@ -19,7 +19,7 @@ This solution automates the notification process for completed agent evaluations
 
 1. **Evaluator completes evaluation and selects a role to notify**
    - Quality assurance team completes agent evaluation form
-   - Selects "Supervisor" or "Manager" from notification dropdown
+   - Selects "Supervisor", "Manager", or other roles from notification dropdown
 
 2. **Evaluation results stored in Amazon S3**
    - Amazon Connect automatically saves evaluation data to Amazon S3 bucket
@@ -87,7 +87,7 @@ Before you begin, ensure you have the following:
 
 ### B. Create users in your Amazon Connect Instance
 
-For this walkthrough create four users using the hierarchy branch example: Earth/NorthAmerica/USA/Washington/Seattle. Use the tag key `role` with values `agent`, `supervisor`, or `manager`.
+For this walkthrough create users using the hierarchy branch example: Earth/NorthAmerica/USA/Washington/Seattle. Use the tag key `role` with values `agent`, `supervisor`, or `manager`.
 
 1. Users to create
    - evalAgentA
@@ -107,7 +107,7 @@ For this walkthrough create four users using the hierarchy branch example: Earth
      - Hierarchy group: Earth/NorthAmerica/USA/Washington/Seattle
      - Tags: role:manager
 
-Provide emails to the evalSupervsior and evalManager using the primary ***Email Address*** field.
+Provide emails to the evalSupervisor and evalManager using the primary ***Email Address*** field.
 
 ![alt text](images/eval-useremail.png)
 
@@ -143,9 +143,11 @@ The CloudFormation deployment automatically creates an evaluation form called "E
    - ![alt text](images/eval-activate.png)
    - Confirm activation 
 
-The form includes a "Which role should be notified?" question with "Supervisor" and "Manager" options, which the notification AWS Lambda uses to determine recipients.
+The form includes a "Which role should be notified?" question with role options, which the notification AWS Lambda uses to determine recipients.
 
-**Important:** This exact question text can be added to any other evaluation form to enable notifications. The question text must match exactly as configured during deployment. You can customize the answer options (Supervisor/Manager) based on your role tag structure - just ensure the answer options match the 'role' tags assigned to your Connect users.
+**Important:** This exact question text can be added to any other evaluation form to enable notifications. The question text must match exactly as configured during deployment. You can customize the answer options based on your role tag structure - just ensure the answer options match the 'role' tags assigned to your Connect users.
+
+**Note:** Agent notifications can be configured separately using Contact Lens rules when an evaluation is performed on them.
 
 
 ### D. Test the Solution by Submitting an Evaluation Form

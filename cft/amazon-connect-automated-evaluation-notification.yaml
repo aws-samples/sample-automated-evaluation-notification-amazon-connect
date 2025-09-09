@@ -27,10 +27,7 @@ Parameters:
     Type: String
     Description: Evaluation Question Text to Identify Flag to Role
     Default: Flag to Roles?
-  EvaluationFlagToAgentQuestionText:
-    Type: String
-    Description: Evaluation Question Text to Identify Flag to Agent
-    Default: Flag to the Agent?
+
   UsehierarchyForNotification:
     Type: String
     Description: Use Hierarchy with Tag Roles for Notification or Only Roles?
@@ -179,7 +176,7 @@ Resources:
         Variables:
           SENDER_EMAIL: !Ref SESEmailAddresss
           EvaluationFlagToQuestionText: !Ref EvaluationFlagToQuestionText
-          EvaluationFlagToAgentQuestionText: !Ref EvaluationFlagToAgentQuestionText
+
           UsehierarchyForNotification: !Ref UsehierarchyForNotification
           EmailFieldSource: !Ref EmailFieldSource
 

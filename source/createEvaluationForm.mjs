@@ -27,8 +27,9 @@ export const handler = async (event, context) => {
                 QuestionTypeProperties: {
                   SingleSelect: {
                     Options: [
-                      { Text: "Supervisor", Score: 1 },
-                      { Text: "Manager", Score: 1 }
+                      { RefId: "supervisor", Text: "Supervisor", Score: 1 },
+                      { RefId: "manager", Text: "Manager", Score: 1 },
+                      { RefId: "unitlead", Text: "Unit Lead", Score: 1 }
                     ]
                   }
                 }

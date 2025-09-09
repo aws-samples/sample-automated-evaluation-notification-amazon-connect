@@ -30,15 +30,9 @@ export const handler = async (event) => {
         );
         const targetRole = roleQuestion?.answer.values.find(v => v.selected)?.valueText?.toLowerCase();
 
-        // Check if "Flag to the Agent?" is set to "Yes"
-        const flagToAgentQuestion = evaluationData.questions.find(q =>
-            q.questionText === process.env.EvaluationFlagToAgentQuestionText
-        );
-        const flagToAgent = flagToAgentQuestion?.answer.values.find(v => v.selected)?.valueText === "Yes";
-
-        // Proceed with notification if either a role is selected or flagToAgent is true
-        if (!targetRole && !flagToAgent) {
-            returnOutput('No Evaluation Notification - No role selected for notification and not flagged to agent');
+        // Proceed with notification if a role is selected
+        if (!targetRole) {
+            returnOutput('No Evaluation Notification - No role selected for notification');
         }
 
         // Get Agent Data From Instance
@@ -92,17 +86,7 @@ export const handler = async (event) => {
             }
         }
 
-        // Add the evaluated agent to the notification list if flagged
-        if (flagToAgent && agentResponse.User) {
-            const agentEmailAddress = getEmailFromUser(agentResponse.User, process.env.EmailFieldSource);
-            if (agentEmailAddress) {
-                usersFound.push({
-                    Id: agentResponse.User.Id,
-                    Username: agentResponse.User.Username,
-                    EmailAddress: agentEmailAddress
-                });
-            }
-        }
+
 
         console.log('Users to send notification : ', JSON.stringify(usersFound));
         if (usersFound.length > 0) {
