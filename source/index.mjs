@@ -26,7 +26,7 @@ export const handler = async (event) => {
         }
 
         const roleQuestion = evaluationData.questions.find(q =>
-            q.questionText === process.env.EvaluationFlagToQuestionText
+            q.questionText === process.env.EvaluationNotificationQuestionText
         );
         const targetRole = roleQuestion?.answer.values.find(v => v.selected)?.valueText?.toLowerCase();
 
