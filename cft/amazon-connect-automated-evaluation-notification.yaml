@@ -23,10 +23,10 @@ Parameters:
   SESEmailAddresss:
     Type: String
     Description: Sender Email Address from SES
-  EvaluationFlagToQuestionText:
+  EvaluationNotificationQuestionText:
     Type: String
-    Description: Evaluation Question Text to Identify Flag to Role
-    Default: Flag to Roles?
+    Description: Evaluation Question Text to Identify Which Role to Notify
+    Default: Which role should be notified?
 
   UsehierarchyForNotification:
     Type: String
@@ -65,7 +65,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CreateEvaluationFormLambda.Arn
       InstanceId: !Select [1, !Split ['/', !Select [5, !Split [':', !Ref InstanceArn]]]]
-      QuestionText: !Ref EvaluationFlagToQuestionText
+      QuestionText: !Ref EvaluationNotificationQuestionText
 
   CreateEvaluationFormLambdaRole:
     Type: AWS::IAM::Role
@@ -175,7 +175,7 @@ Resources:
       Environment:
         Variables:
           SENDER_EMAIL: !Ref SESEmailAddresss
-          EvaluationFlagToQuestionText: !Ref EvaluationFlagToQuestionText
+          EvaluationNotificationQuestionText: !Ref EvaluationNotificationQuestionText
 
           UsehierarchyForNotification: !Ref UsehierarchyForNotification
           EmailFieldSource: !Ref EmailFieldSource
