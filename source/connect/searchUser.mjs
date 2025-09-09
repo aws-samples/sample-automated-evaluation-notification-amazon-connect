@@ -14,7 +14,7 @@ export async function searchhierarchy(hierarchyGroupId, targetRole, instanceId) 
           },
           TagConditions: [
             {
-              TagKey: 'Role',
+              TagKey: 'role',
               TagValue: targetRole
             }
           ]
@@ -45,7 +45,7 @@ export async function searchRole(targetRole, instanceId) {
           {
             TagConditions: [
               {
-                TagKey: 'Role',
+                TagKey: 'role',
                 TagValue: targetRole
               }
             ]

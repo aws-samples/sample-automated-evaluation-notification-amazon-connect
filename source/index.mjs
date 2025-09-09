@@ -28,7 +28,7 @@ export const handler = async (event) => {
         const roleQuestion = evaluationData.questions.find(q =>
             q.questionText === process.env.EvaluationFlagToQuestionText
         );
-        const targetRole = roleQuestion?.answer.values.find(v => v.selected)?.valueText;
+        const targetRole = roleQuestion?.answer.values.find(v => v.selected)?.valueText?.toLowerCase();
 
         // Check if "Flag to the Agent?" is set to "Yes"
         const flagToAgentQuestion = evaluationData.questions.find(q =>
@@ -42,22 +42,28 @@ export const handler = async (event) => {
         }
 
         // Get Agent Data From Instance
+        console.log(`Looking up agent ID: ${evaluationData.metadata.agentId} in instance: ${evaluationData.metadata.instanceId}`);
         const agentResponse = await getUser(evaluationData.metadata.instanceId, evaluationData.metadata.agentId);
+        console.log('Agent response:', JSON.stringify(agentResponse));
 
-        if (!agentResponse && !agentResponse.User && !agentResponse.User.IdentityInfo) {
+        if (!agentResponse || !agentResponse.User || !agentResponse.User.IdentityInfo) {
             returnOutput('No Evaluation Notification - Instance Agent Data Not Found');
         }
 
         const agentName = `${agentResponse.User.IdentityInfo.FirstName} ${agentResponse.User.IdentityInfo.LastName}`;
         const hierarchyGroupId = agentResponse.User.HierarchyGroupId;
+        console.log(`Found agent: ${agentName}, hierarchy group: ${hierarchyGroupId}`);
+        console.log(`Target role to notify: ${targetRole}`);
     
         let searchResponse;
         // Use hierarchy in Search Yes/No
         console.log('Use hierarchy for notification : ', process.env.UsehierarchyForNotification);
         if(process.env.UsehierarchyForNotification === 'yes'){
             if(hierarchyGroupId){
+                console.log(`Searching hierarchy ${hierarchyGroupId} for role: ${targetRole}`);
                 searchResponse = await searchhierarchy(hierarchyGroupId, targetRole, evaluationData.metadata.instanceId);
             }else{
+                console.log('Agent has no hierarchy group assigned');
                 returnOutput('No Evaluation Notification - No hierarchy group found');
             }
         }else{
@@ -70,13 +76,17 @@ export const handler = async (event) => {
                 // Get complete user details to access email fields
                 const fullUserResponse = await getUser(evaluationData.metadata.instanceId, user.Id);
                 if (fullUserResponse && fullUserResponse.User) {
-                    const emailAddress = getEmailFromUser(fullUserResponse.User, process.env.EmailFieldSource);
-                    if (emailAddress) {
-                        usersFound.push({
-                            Id: fullUserResponse.User.Id,
-                            Username: fullUserResponse.User.Username,
-                            EmailAddress: emailAddress
-                        });
+                    // Check if user's role tag matches target role (case-insensitive)
+                    const userRole = fullUserResponse.User.Tags?.role?.toLowerCase();
+                    if (userRole === targetRole) {
+                        const emailAddress = getEmailFromUser(fullUserResponse.User, process.env.EmailFieldSource);
+                        if (emailAddress) {
+                            usersFound.push({
+                                Id: fullUserResponse.User.Id,
+                                Username: fullUserResponse.User.Username,
+                                EmailAddress: emailAddress
+                            });
+                        }
                     }
                 }
             }
